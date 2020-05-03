@@ -1,0 +1,64 @@
+version: "3.5"
+
+services:
+  consul:
+    image: consul
+    container_name: consul
+    networks:
+      - internal
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+    restart: always
+
+  registrator:
+    container_name: registrator
+    image: gliderlabs/registrator:master
+    networks:
+      - internal
+    volumes:
+      - "/var/run/docker.sock:/tmp/docker.sock"
+    command: consul://consul:8500
+    restart: always
+    depends_on:
+      - consul
+
+  service1:
+    build:
+      context: ./service1
+    stdin_open: true
+    tty: true
+    networks:
+      - internal
+    ports:
+      - "8010:8010"
+    container_name: service1
+    image: service1
+    environment:
+      SERVICE_8010_CHECK_HTTP: "/"
+      SERVICE_8010_CHECK_INTERVAL: "15s"
+      SERVICE_8010_CHECK_TIMEOUT: "1s"
+      SERVICE_8010_CHECK_DEREGISTER_AFTER: "10m"
+
+  service2:
+    build:
+      context: ./service2
+    stdin_open: true
+    tty: true
+    networks:
+      - internal
+    ports:
+      - "8020:8020"
+    container_name: service2
+    image: service2
+    environment:
+      SERVICE_8020_CHECK_HTTP: "/"
+      SERVICE_8020_CHECK_INTERVAL: "15s"
+      SERVICE_8020_CHECK_TIMEOUT: "1s"
+      SERVICE_8020_CHECK_DEREGISTER_AFTER: "10m"
+
+networks:
+  internal:
+    name: internal
+    driver: bridge
